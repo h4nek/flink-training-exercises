@@ -65,7 +65,7 @@ public class RideCleansingExercise extends ExerciseBase {
 		env.execute("Taxi Ride Cleansing");
 	}
 
-	private static class NYCFilter implements FilterFunction<TaxiRide> {
+	public static class NYCFilter implements FilterFunction<TaxiRide> {
 
 		@Override
 		public boolean filter(TaxiRide taxiRide) throws Exception {
