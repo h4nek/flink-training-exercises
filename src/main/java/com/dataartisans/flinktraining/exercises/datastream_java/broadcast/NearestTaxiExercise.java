@@ -21,9 +21,7 @@ import com.dataartisans.flinktraining.exercises.datastream_java.sources.TaxiRide
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.MissingSolutionException;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.state.ValueState;
-import org.apache.flink.api.common.state.ValueStateDescriptor;
+import org.apache.flink.api.common.state.*;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -40,6 +38,7 @@ import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
 
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -54,6 +53,7 @@ import java.util.Random;
  * -input path-to-input-file
  *
  * Use nc -lk 9999 to establish a socket stream from stdin on port 9999
+ * (ncat -lk 9999 on Windows. https://nmap.org/ncat/)
  *
  * Some good locations:
  *
@@ -177,7 +177,7 @@ public class NearestTaxiExercise extends ExerciseBase {
 	}
 
 	// Note that in order to have consistent results after a restore from a checkpoint, the
-	// behavior of this method must be deterministic, and NOT depend on characterisitcs of an
+	// behavior of this method must be deterministic, and NOT depend on characteristics of an
 	// individual sub-task.
 	public static class QueryFunction extends KeyedBroadcastProcessFunction<Long, TaxiRide, Query, Tuple3<Long, Long, Float>> {
 
@@ -191,8 +191,21 @@ public class NearestTaxiExercise extends ExerciseBase {
 		// Output (queryId, taxiId, euclidean distance) for every query, if the taxi ride is now ending.
 		public void processElement(TaxiRide ride, ReadOnlyContext ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
 			if (!ride.isStart) {
-				throw new MissingSolutionException();
+                Iterable<Map.Entry<Long, Query>> broadcastState = ctx.getBroadcastState(queryDescriptor).immutableEntries();
+                for (Map.Entry<Long, Query> mapEntry : broadcastState) {
+//                    float dist = getEuclideanDistance(mapEntry.getValue(), ride);
+                    Query query = mapEntry.getValue();
+                    float dist = (float) ride.getEuclideanDistance(query.getLongitude(), query.getLatitude());
+                    out.collect(new Tuple3<>(mapEntry.getKey(), ride.taxiId, dist));
+                }
 			}
 		}
+		
+		// A basic implementation of computing the euclidean distance. Might be unsuitable for the task.
+		private float getEuclideanDistance(Query query, TaxiRide ride) {
+		    float latDist = Math.abs(query.latitude - ride.endLat);
+		    float lonDist = Math.abs(query.longitude - ride.endLon);
+		    return (float) Math.sqrt(Math.pow(latDist, 2) + Math.pow(lonDist, 2));
+        }
 	}
 }
