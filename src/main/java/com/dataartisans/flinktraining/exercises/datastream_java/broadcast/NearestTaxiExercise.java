@@ -191,8 +191,8 @@ public class NearestTaxiExercise extends ExerciseBase {
 		// Output (queryId, taxiId, euclidean distance) for every query, if the taxi ride is now ending.
 		public void processElement(TaxiRide ride, ReadOnlyContext ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
 			if (!ride.isStart) {
-                Iterable<Map.Entry<Long, Query>> broadcastState = ctx.getBroadcastState(queryDescriptor).immutableEntries();
-                for (Map.Entry<Long, Query> mapEntry : broadcastState) {
+                Iterable<Map.Entry<Long, Query>> entries = ctx.getBroadcastState(queryDescriptor).immutableEntries();
+                for (Map.Entry<Long, Query> mapEntry : entries) {
 //                    float dist = getEuclideanDistance(mapEntry.getValue(), ride);
                     Query query = mapEntry.getValue();
                     float dist = (float) ride.getEuclideanDistance(query.getLongitude(), query.getLatitude());
