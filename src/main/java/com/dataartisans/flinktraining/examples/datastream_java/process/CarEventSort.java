@@ -33,6 +33,11 @@ import org.apache.flink.util.Collector;
 
 import java.util.PriorityQueue;
 
+/**
+ * Sorts the ConnectedCarEvent events.
+ * <br><br>
+ * Link to get the data: https://training.ververica.com/exercises/connectedCar.html
+ * */
 public class CarEventSort {
 	public static void main(String[] args) throws Exception {
 
