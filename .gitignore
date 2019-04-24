@@ -27,3 +27,5 @@ atlassian-ide-plugin.xml
 # added manually #
 nycTaxiFares.gz
 nycTaxiRides.gz
+carInOrder.csv
+carOutOfOrder.csv
