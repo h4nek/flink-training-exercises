@@ -30,6 +30,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 
 import java.util.PriorityQueue;
 
@@ -39,11 +40,17 @@ import java.util.PriorityQueue;
  * Link to get the data: https://training.ververica.com/exercises/connectedCar.html
  * */
 public class CarEventSort {
+    
+    static final String carInOrderPath = "./carInOrder.csv";
+    static final String carOutOfOrderPath = "./carOutOfOrder.csv";
+    
+    static final OutputTag<ConnectedCarEvent> lateCarEvents = new OutputTag<ConnectedCarEvent>("late") {};
+    
 	public static void main(String[] args) throws Exception {
-
+	    
 		// read parameters
 		ParameterTool params = ParameterTool.fromArgs(args);
-		String input = params.getRequired("input");
+		String input = params.get("input", carInOrderPath);
 
 		// set up streaming execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -93,12 +100,15 @@ public class CarEventSort {
 				queueState.update(queue);
 				timerService.registerEventTimeTimer(event.timestamp);
 			}
+			else {  // collect the late events into side output
+			    context.output(lateCarEvents, event);
+            }
 		}
 
 		@Override
 		public void onTimer(long timestamp, OnTimerContext context, Collector<ConnectedCarEvent> out) throws Exception {
 			PriorityQueue<ConnectedCarEvent> queue = queueState.value();
-			Long watermark = context.timerService().currentWatermark();
+			long watermark = context.timerService().currentWatermark();
 			ConnectedCarEvent head = queue.peek();
 			while (head != null && head.timestamp <= watermark) {
 				out.collect(head);

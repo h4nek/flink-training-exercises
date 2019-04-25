@@ -56,6 +56,7 @@ public class ConnectedCarEvent implements Comparable<ConnectedCarEvent> {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(id).append(",");
+		sb.append(carId).append(",");
 		sb.append(timestamp).append(",");
 		sb.append(longitude).append(",");
 		sb.append(latitude).append(",");
