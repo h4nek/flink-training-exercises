@@ -27,6 +27,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
@@ -44,7 +45,7 @@ public class CarEventSort {
     static final String carInOrderPath = "./carInOrder.csv";
     static final String carOutOfOrderPath = "./carOutOfOrder.csv";
     
-    static final OutputTag<ConnectedCarEvent> lateCarEvents = new OutputTag<ConnectedCarEvent>("late") {};
+    static final OutputTag<ConnectedCarEvent> lateCarEventsTag = new OutputTag<ConnectedCarEvent>("late") {};
     
 	public static void main(String[] args) throws Exception {
 	    
@@ -66,10 +67,18 @@ public class CarEventSort {
 				.assignTimestampsAndWatermarks(new ConnectedCarAssigner());
 
 		// sort events
-		events.keyBy((ConnectedCarEvent event) -> event.carId)
-				.process(new SortFunction())
-				.print();
-
+		SingleOutputStreamOperator<ConnectedCarEvent> sortedEvents = events
+                .keyBy((ConnectedCarEvent event) -> event.carId)
+				.process(new SortFunction());
+//				.print();
+		
+        // get late events
+        DataStream<ConnectedCarEvent> lateCarEvents = sortedEvents.getSideOutput(lateCarEventsTag);
+        
+        // print both outputs
+        sortedEvents.print();
+        lateCarEvents.printToErr();
+        
 		env.execute("Sort Connected Car Events");
 	}
 
@@ -101,7 +110,7 @@ public class CarEventSort {
 				timerService.registerEventTimeTimer(event.timestamp);
 			}
 			else {  // collect the late events into side output
-			    context.output(lateCarEvents, event);
+			    context.output(lateCarEventsTag, event);
             }
 		}
 
