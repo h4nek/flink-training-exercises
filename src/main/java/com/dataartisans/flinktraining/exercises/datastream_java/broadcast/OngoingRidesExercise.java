@@ -33,6 +33,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -92,18 +93,26 @@ public class OngoingRidesExercise extends ExerciseBase {
 	public static class QueryFunction extends KeyedBroadcastProcessFunction<Long, TaxiRide, String, TaxiRide> {
 		private ValueStateDescriptor<TaxiRide> taxiDescriptor =
 				new ValueStateDescriptor<>("saved ride", TaxiRide.class);
+		private ValueState<TaxiRide> latestRide;
 
 		@Override
-		public void open(Configuration config) throws MissingSolutionException {
-			throw new MissingSolutionException();
+		public void open(Configuration config) {
 			// We use a ValueState<TaxiRide> to store the latest ride event for each taxi.
+            latestRide = getRuntimeContext().getState(taxiDescriptor);
 		}
 
 		@Override
 		public void processElement(TaxiRide ride, ReadOnlyContext ctx, Collector< TaxiRide> out) throws Exception {
 			// For every taxi, let's store the most up-to-date information.
 			// TaxiRide implements Comparable to make this easy.
-			throw new MissingSolutionException();
+            if (ride.compareTo(latestRide.value()) > 0) { 
+                if (ride.isStart) {
+                    latestRide.update(ride);
+                }
+                else { // ride is end ride event
+                    latestRide.clear(); // our most current info is that a ride has ended
+                }
+            }
 		}
 
 		@Override
@@ -111,15 +120,19 @@ public class OngoingRidesExercise extends ExerciseBase {
 			DateTimeFormatter timeFormatter =
 					DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss").withLocale(Locale.US).withZoneUTC();
 
-			Long thresholdInMinutes = Long.valueOf(msg);
-			Long wm = ctx.currentWatermark();
+			int thresholdInMinutes = Integer.valueOf(msg); // int should be enough instead of the default long...
+			long wm = ctx.currentWatermark();
 			System.out.println("QUERY: " + thresholdInMinutes + " minutes at " + timeFormatter.print(wm));
 
 			// Collect to the output all ongoing rides that started at least thresholdInMinutes ago.
 			ctx.applyToKeyedState(taxiDescriptor, new KeyedStateFunction<Long, ValueState<TaxiRide>>() {
 				@Override
 				public void process(Long taxiId, ValueState<TaxiRide> taxiState) throws Exception {
-					throw new MissingSolutionException();
+				    TaxiRide taxiRide = taxiState.value();
+                    DateTime thresholdTime = DateTime.now().minusMinutes(thresholdInMinutes); 
+				    if (! taxiRide.startTime.isAfter(thresholdTime)) { // check if the date is NOT after the threshold
+                        out.collect(taxiRide);
+                    }
 				}
 			});
 		}
