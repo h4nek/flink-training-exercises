@@ -37,7 +37,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import scala.tools.nsc.doc.model.Val;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -68,12 +73,14 @@ public class NearestTaxiExercise extends ExerciseBase {
 		private final long queryId;
 		private final float longitude;
 		private final float latitude;
+		private final DateTime eventTime;   // storing event time to ease the deletion of old queries
 
 		Query(final float longitude, final float latitude) {
 			this.queryId = new Random().nextLong();
 			this.longitude = longitude;
 			this.latitude = latitude;
-		}
+            this.eventTime = DateTime.now(DateTimeZone.UTC);    // there were problems with default locale when printing
+        }
 
 		Long getQueryId() {
 			return queryId;
@@ -87,12 +94,17 @@ public class NearestTaxiExercise extends ExerciseBase {
 			return latitude;
 		}
 
-		@Override
+        DateTime getEventTime() {
+            return eventTime;
+        }
+
+        @Override
 		public String toString() {
 			return "Query{" +
 					"id=" + queryId +
 					", longitude=" + longitude +
 					", latitude=" + latitude +
+                    ", event time=" + eventTime +
 					'}';
 		}
 	}
@@ -181,10 +193,33 @@ public class NearestTaxiExercise extends ExerciseBase {
 	// individual sub-task.
 	public static class QueryFunction extends KeyedBroadcastProcessFunction<Long, TaxiRide, Query, Tuple3<Long, Long, Float>> {
 
+//	    ValueState<Long> dateTimeValueState = getRuntimeContext()
+//                .getState(new ValueStateDescriptor<>("query time", Long.class));
+	    
 		@Override
 		public void processBroadcastElement(Query query, Context ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
+		    BroadcastState broadcastState = ctx.getBroadcastState(queryDescriptor);
 			System.out.println("new query " + query);
-			ctx.getBroadcastState(queryDescriptor).put(query.getQueryId(), query);
+			broadcastState.put(query.getQueryId(), query);
+			
+			// we'll make use of the fact that broadcastState is mutable here to delete old queries
+            Iterable<Map.Entry<Long, Query>> entries = broadcastState.entries();
+            List<Long> keysToDelete = new ArrayList<>();    // we accumulate all the keys first to avoid concurrent modification
+            for (Map.Entry<Long, Query> mapEntry : entries) {
+                Query query1 = mapEntry.getValue();
+                if (query1.eventTime.isBefore(DateTime.now(DateTimeZone.UTC).minusSeconds(6))) {    // considering the
+                    // "servingspeedfactor" of 600, this will erase queries when they're at least an hour old
+                    // (if another query arrives afterwards)
+                    System.out.println("removing query " + query1);
+                    keysToDelete.add(query1.getQueryId());
+                }
+            }
+            
+            for (Long queryID : keysToDelete) { // delete obsolete queries
+                broadcastState.remove(queryID);
+            }
+            
+//			dateTimeValueState.update(ctx.timestamp());
 		}
 
 		@Override
