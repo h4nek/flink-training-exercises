@@ -32,11 +32,14 @@ import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
+import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.util.Collector;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.apache.flink.streaming.api.functions.*;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 /**
@@ -77,7 +80,7 @@ public class OngoingRidesExercise extends ExerciseBase {
 		// add a socket source
 		BroadcastStream<String> queryStream = env.socketTextStream("localhost", 9999)
 				// EXERCISE QUESTION: Is this needed?
-				// .assignTimestampsAndWatermarks(new QueryStreamAssigner())
+				.assignTimestampsAndWatermarks(new QueryStreamAssigner())
 				.broadcast(dummyBroadcastState);
 
 		DataStream<TaxiRide> reports = rides
@@ -121,7 +124,7 @@ public class OngoingRidesExercise extends ExerciseBase {
 					DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss").withLocale(Locale.US).withZoneUTC();
 
 			int thresholdInMinutes = Integer.valueOf(msg); // int should be enough instead of the default long...
-			long wm = ctx.currentWatermark();
+			long wm = ctx.currentWatermark(); // this will be the minimum of the Watermarks of the two connected streams
 			System.out.println("QUERY: " + thresholdInMinutes + " minutes at " + timeFormatter.print(wm));
 
 			// Collect to the output all ongoing rides that started at least thresholdInMinutes ago.
@@ -129,7 +132,8 @@ public class OngoingRidesExercise extends ExerciseBase {
 				@Override
 				public void process(Long taxiId, ValueState<TaxiRide> taxiState) throws Exception {
 				    TaxiRide taxiRide = taxiState.value();
-                    DateTime thresholdTime = DateTime.now().minusMinutes(thresholdInMinutes); 
+                    DateTime thresholdTime = DateTime.now().minusMinutes(thresholdInMinutes);
+//                    System.err.println("Threshold: " + thresholdTime);
 				    if (! taxiRide.startTime.isAfter(thresholdTime)) { // check if the date is NOT after the threshold
                         out.collect(taxiRide);
                     }
@@ -138,4 +142,17 @@ public class OngoingRidesExercise extends ExerciseBase {
 		}
 	}
 
+    private static class QueryStreamAssigner implements AssignerWithPeriodicWatermarks<String> {
+
+        @Nullable
+        @Override
+        public Watermark getCurrentWatermark() {
+            return Watermark.MAX_WATERMARK; // we want the broadcast function to be driven by the watermarks from TaxiRide stream
+        }
+        
+        @Override
+        public long extractTimestamp(String element, long previousElementTimestamp) {
+            return 0;
+        }
+    }
 }
