@@ -108,6 +108,7 @@ public class OngoingRidesExercise extends ExerciseBase {
 		public void processElement(TaxiRide ride, ReadOnlyContext ctx, Collector< TaxiRide> out) throws Exception {
 			// For every taxi, let's store the most up-to-date information.
 			// TaxiRide implements Comparable to make this easy.
+//            latestRide.update(ride);
             if (ride.compareTo(latestRide.value()) > 0) { 
                 if (ride.isStart) {
                     latestRide.update(ride);
@@ -132,9 +133,9 @@ public class OngoingRidesExercise extends ExerciseBase {
 				@Override
 				public void process(Long taxiId, ValueState<TaxiRide> taxiState) throws Exception {
 				    TaxiRide taxiRide = taxiState.value();
-                    DateTime thresholdTime = DateTime.now().minusMinutes(thresholdInMinutes);
-//                    System.err.println("Threshold: " + thresholdTime);
-				    if (! taxiRide.startTime.isAfter(thresholdTime)) { // check if the date is NOT after the threshold
+                    long thresholdInMillis = thresholdInMinutes*60000;
+				    if (//taxiRide.isStart && 
+                            ! taxiRide.startTime.isAfter(wm - thresholdInMillis)) { // check if the date is NOT after the threshold
                         out.collect(taxiRide);
                     }
 				}
