@@ -19,14 +19,14 @@
 	
 	<groupId>com.data-artisans</groupId>
 	<artifactId>flink-training-exercises</artifactId>
-	<version>2.6.0</version>
+	<version>2.7.1</version>
 	<packaging>jar</packaging>
 
 	<name>Apache Flink Training Exercises</name>
-	<url>dataartisans.github.io/flink-training/</url>
+	<url>https://training.ververica.com</url>
 
 	<inceptionYear>2015</inceptionYear>
-	<description>Utilities and material for Apache Flink Training, provided by data Artisans.</description>
+	<description>Utilities and material for Apache Flink Training, provided by Ververica.</description>
 
 	<scm>
 		<url>https://github.com/dataArtisans/cascading-flink</url>
@@ -43,16 +43,16 @@
 
 	<developers>
 		<developer>
-			<organization>data Artisans</organization>
-			<url>http://data-artisans.com/</url>
+			<organization>Ververica</organization>
+			<url>https://ververica.com/</url>
 		</developer>
 	</developers>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<slf4j.version>1.7.19</slf4j.version>
-		<flink.version>1.7.2</flink.version>
-		<scala.binary.version>2.11</scala.binary.version>
+		<flink.version>1.8.0</flink.version>
+		<scala.binary.version>2.12</scala.binary.version>
 		<junit.version>4.12</junit.version>
 	</properties>
 
@@ -119,8 +119,9 @@
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-table_${scala.binary.version}</artifactId>
+			<artifactId>flink-table-uber_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
@@ -155,7 +156,7 @@
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-java_2.11</artifactId>
+			<artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
 			<scope>test</scope>
 			<type>test-jar</type>
@@ -171,7 +172,7 @@
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-runtime_2.11</artifactId>
+			<artifactId>flink-runtime_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
 			<scope>test</scope>
 			<type>test-jar</type>

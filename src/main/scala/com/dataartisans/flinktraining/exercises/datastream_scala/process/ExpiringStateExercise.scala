@@ -30,7 +30,7 @@ import org.apache.flink.util.Collector
 
 /**
   * The "Expiring State" exercise of the Flink training
-  * (http://training.data-artisans.com).
+  * (http://training.ververica.com).
   *
   * The goal for this exercise is to enrich TaxiRides with fare information.
   *
@@ -79,7 +79,7 @@ object ExpiringStateExercise {
                                  context: CoProcessFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)]#Context,
                                  out: Collector[(TaxiRide, TaxiFare)]): Unit = {
 
-      throw new MissingSolutionException();
+      throw new MissingSolutionException()
     }
 
     override def processElement2(fare: TaxiFare,

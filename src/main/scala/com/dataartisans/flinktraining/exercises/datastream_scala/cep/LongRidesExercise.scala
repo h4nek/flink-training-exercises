@@ -32,7 +32,7 @@ import scala.collection.Map
 
 /**
   * Scala/CEP reference implementation for the "Long Ride Alerts" exercise of the Flink training
-  * (http://training.data-artisans.com).
+  * (http://training.ververica.com).
   *
   * The goal for this exercise is to emit START events for taxi rides that have not been matched
   * by an END event during the first 2 hours of the ride.
@@ -86,7 +86,7 @@ object LongRidesExercise {
 
     printOrTest(longRides.getSideOutput(timedoutTag))
 
-    throw new MissingSolutionException();
+    throw new MissingSolutionException()
 
 //    env.execute("Long Taxi Rides (CEP)")
   }

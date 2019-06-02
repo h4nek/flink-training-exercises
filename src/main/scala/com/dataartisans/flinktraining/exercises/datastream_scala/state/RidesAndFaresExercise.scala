@@ -30,7 +30,7 @@ import org.apache.flink.util.Collector
 
 /**
   * The "Stateful Enrichment" exercise of the Flink training
-  * (http://training.data-artisans.com).
+  * (http://training.ververica.com).
   *
   * The goal for this exercise is to enrich TaxiRides with fare information.
   *
@@ -76,7 +76,7 @@ object RidesAndFaresExercise {
   class EnrichmentFunction extends RichCoFlatMapFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
 
     override def flatMap1(ride: TaxiRide, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
-      throw new MissingSolutionException();
+      throw new MissingSolutionException()
     }
 
     override def flatMap2(fare: TaxiFare, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
