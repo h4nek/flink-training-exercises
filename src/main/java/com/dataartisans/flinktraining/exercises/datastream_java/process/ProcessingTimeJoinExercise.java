@@ -30,7 +30,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 
-/*
+/**
  * This is the simplest possible enrichment join, used to enrich a stream of financial Trades
  * with Customer data. When we receive a Trade we immediately join it with whatever Customer
  * data is available.

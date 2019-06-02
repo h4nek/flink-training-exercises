@@ -49,6 +49,8 @@ import java.util.Locale;
  * The goal of this exercise is to report on all taxis whose current ride has been ongoing
  * for at least n minutes whenever the broadcast stream is queried (with the value of n).
  *
+ * Use nc -lk 9999 to establish a socket stream from stdin on port 9999
+ * (ncat -lk 9999 on Windows. https://nmap.org/ncat/) 
  * Parameters:
  * -input path-to-input-file
  *
@@ -79,7 +81,7 @@ public class OngoingRidesExercise extends ExerciseBase {
 
 		// add a socket source
 		BroadcastStream<String> queryStream = env.socketTextStream("localhost", 9999)
-				// EXERCISE QUESTION: Is this needed?
+				// EXERCISE QUESTION: Is this needed? | ANSWER: Yes, if we want to use watermarks correctly.
 				.assignTimestampsAndWatermarks(new QueryStreamAssigner())
 				.broadcast(dummyBroadcastState);
 

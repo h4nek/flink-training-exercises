@@ -36,7 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-/*
+/**
  * This is an event-time-based enrichment join implemented with a CoProcessFunction, used to enrich a
  * stream of financial Trades with Customer data.
  *
@@ -93,14 +93,14 @@ public class EventTimeJoinExercise {
 
 		@Override
 		public void open(Configuration config) {
-			MapStateDescriptor tDescriptor = new MapStateDescriptor<Long, Trade>(
+			MapStateDescriptor<Long, Trade> tDescriptor = new MapStateDescriptor<>(
 					"tradeBuffer",
 					TypeInformation.of(Long.class),
 					TypeInformation.of(Trade.class)
 			);
 			tradeMap = getRuntimeContext().getMapState(tDescriptor);
 
-			MapStateDescriptor cDescriptor = new MapStateDescriptor<Long, Customer>(
+			MapStateDescriptor<Long, Customer> cDescriptor = new MapStateDescriptor<>(
 					"customerBuffer",
 					TypeInformation.of(Long.class),
 					TypeInformation.of(Customer.class)
@@ -118,7 +118,7 @@ public class EventTimeJoinExercise {
 			TimerService timerService = context.timerService();
 
 			if (context.timestamp() > timerService.currentWatermark()) {
-				// Do the join later, by which time any relevant Customer records should have have arrived.
+				// Do the join later, by which time any relevant Customer records should have arrived.
 				tradeMap.put(trade.timestamp, trade);
 				timerService.registerEventTimeTimer(trade.timestamp);
 			} else {
@@ -155,7 +155,7 @@ public class EventTimeJoinExercise {
 			}
 		}
 
-		/*
+		/**
 		 * Returns the newest Customer that isn't newer than the Trade we are enriching.
 		 * As a side effect, removes earlier Customer records that are no longer needed.
 		 */
