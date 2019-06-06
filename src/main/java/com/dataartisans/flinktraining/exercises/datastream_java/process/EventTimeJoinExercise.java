@@ -27,9 +27,11 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -73,13 +75,17 @@ public class EventTimeJoinExercise {
 		// Simulated customer stream
 		DataStream<Customer> customerStream = FinSources.customerSource(env);
 
+        final OutputTag<EnrichedTrade> outputTag = new OutputTag<EnrichedTrade>("side-output") {}; // for late trades
+
 		// Stream of enriched trades
-		DataStream<EnrichedTrade> joinedStream = tradeStream
+		SingleOutputStreamOperator<EnrichedTrade> joinedStream = tradeStream    // an extension of DataStream class
 				.keyBy("customerId")
 				.connect(customerStream.keyBy("customerId"))
 				.process(new EventTimeJoinFunction());
-
+		
 		joinedStream.print();
+
+        joinedStream.getSideOutput(outputTag).printToErr(); // print the late trades to stdErr
 
 		env.execute("event-time join");
 	}
@@ -90,6 +96,9 @@ public class EventTimeJoinExercise {
 
 		// Store Customer updates for a customerId, keyed by timestamp
 		private MapState<Long, Customer> customerMap = null;
+
+        final OutputTag<EnrichedTrade> outputTag = new OutputTag<EnrichedTrade>("side-output") {}; // for late trades
+		private int LATE_TRADES_THRESHOLD = 10000; // maximum time (in ms) to wait for potential late trades
 
 		@Override
 		public void open(Configuration config) {
@@ -121,8 +130,9 @@ public class EventTimeJoinExercise {
 				// Do the join later, by which time any relevant Customer records should have arrived.
 				tradeMap.put(trade.timestamp, trade);
 				timerService.registerEventTimeTimer(trade.timestamp);
-			} else {
-				// Late Trades land here.
+			} else { // Late Trades land here.
+			    // we can join them right away
+                context.output(outputTag, new EnrichedTrade(trade, getCustomerRecordToJoin(trade.timestamp)));
 			}
 		}
 
@@ -175,7 +185,10 @@ public class EventTimeJoinExercise {
 					*/
 					if (theOneWeAreLookingFor != null) {
 						if (c.timestamp > theOneWeAreLookingFor.timestamp) {
-							toRemove.add(theOneWeAreLookingFor.timestamp);
+                            // added late trades support
+                            if (c.timestamp > theOneWeAreLookingFor.timestamp + LATE_TRADES_THRESHOLD) {
+                                toRemove.add(theOneWeAreLookingFor.timestamp);
+                            }
 							theOneWeAreLookingFor = c;
 						}
 					} else {
