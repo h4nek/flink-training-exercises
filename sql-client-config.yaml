@@ -4,7 +4,7 @@ tables:
     update-mode: append
     connector:
       type: taxi-rides
-      path: "/Users/david/stuff/flink-training/trainingData/nycTaxiRides.gz"
+      path: "nycTaxiRides.gz"
       max-event-delay-secs: 60
       serving-speed-factor: 1800
   - name: TaxiFares
@@ -12,7 +12,7 @@ tables:
     update-mode: append
     connector:
       type: taxi-fares
-      path: "/Users/david/stuff/flink-training/trainingData/nycTaxiFares.gz"
+      path: "nycTaxiFares.gz"
       max-event-delay-secs: 60
       serving-speed-factor: 1800
 
